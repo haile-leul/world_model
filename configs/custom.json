@@ -1,6 +1,6 @@
 {
   "env_id": "DotReach-v0",
-  "factory": "examples.custom_env:make_env",
+  "factory": "world_model.example_env:make_env",
   "env_kwargs": {"max_steps": 100},
   "max_steps": 100,
   "episodes": 200,

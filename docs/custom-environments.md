@@ -49,7 +49,7 @@ Use a config:
 
 `env_id` remains a descriptive identity when a factory is supplied. `env_kwargs` is passed unchanged. Your package must be importable in **every** collection/training/evaluation machine. Use `pip install -e /path/to/my_robot` during development or publish/install a versioned package. Pin simulator/environment versions for repeatability.
 
-The included `examples.custom_env:make_env` factory uses a rendered blue dot moving toward a green goal; it has no optional physics dependencies. Run it from the repo root, or install your own environment as a package to use it from any working directory.
+The included `world_model.example_env:make_env` factory uses a rendered blue dot moving toward a green goal; it has no optional physics dependencies. The example is installed with this package and works from any working directory. Install your own environment as a package for the same portability.
 
 ## Checklist before a long run
 

@@ -1,4 +1,7 @@
 import dataclasses
+import json
+import subprocess
+import sys
 import numpy as np
 import torch
 from world_model.data import collect
@@ -6,6 +9,31 @@ from world_model.evaluate import evaluate, evaluate_model
 from world_model.envs import frame, make_env
 from world_model.planner import MPCPolicy
 from world_model.train import load_checkpoint, train
+
+
+def test_custom_factory_cli_from_another_directory(tmp_path, tiny_config):
+    cfg = dataclasses.replace(
+        tiny_config, env_id="DotReach-v0", factory="world_model.example_env:make_env"
+    )
+    config_path = tmp_path / "config.json"
+    config_path.write_text(json.dumps(cfg.to_dict()))
+    subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "world_model.cli",
+            "collect",
+            "--config",
+            str(config_path),
+            "--output",
+            str(tmp_path / "custom"),
+        ],
+        cwd=tmp_path,
+        check=True,
+        capture_output=True,
+    )
+    manifest = json.loads((tmp_path / "custom" / "manifest.json").read_text())
+    assert manifest["complete"] and len(manifest["episodes"]) == cfg.episodes
 
 
 def test_train_reload_resume_and_mpc(tmp_path, tiny_config):

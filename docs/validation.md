@@ -4,7 +4,7 @@ Executed on 2026-10-06 using Python 3.12, PyTorch 2.6.0+cpu, Gymnasium 1.1.1, an
 
 ## Tests
 
-`pytest -q`: **10 passed**. Tests exercise bounded/multidimensional Box and nonzero-start Discrete action round trips, action repeat at truncation, real Pendulum image collection, nonoverlapping episode splits, continuous and categorical CEM optimization, action/latent rollout timing, termination survival weighting, detached outcome heads, a real optimizer run, checkpoint reload/resume, and closed-loop inference.
+`pytest -q`: **11 passed**. Tests exercise bounded/multidimensional Box and nonzero-start Discrete action round trips, action repeat at truncation, real Pendulum image collection, nonoverlapping episode splits, continuous and categorical CEM optimization, action/latent rollout timing, termination survival weighting, detached outcome heads, a real optimizer run, checkpoint reload/resume, closed-loop inference, and custom-factory CLI collection from a different working directory.
 
 `ruff check .` and `ruff format --check .` are also required by CI. Vendored upstream files are intentionally excluded from formatting to preserve their exact source bytes.
 
@@ -23,6 +23,8 @@ Each environment used 8 random collection episodes, at most 40 transitions per e
 Full per-episode returns, rollout errors, planner settings, and measured latencies are in [`smoke-results.json`](smoke-results.json). The environment horizon caps differ from full benchmarks. MPC was worse than random on CartPole and MountainCar in these tiny runs; the Pendulum difference across two seeds is not sufficient evidence of reliable improvement. Low held-out latent variation in these short runs also warrants longer training and representation diagnostics.
 
 The first smoke attempt exposed an incomplete manifest during final model evaluation. Collection was changed to finalize the manifest atomically, and the complete three-environment smoke run was repeated successfully. The environment emitted CPU-info/NNPACK fallback warnings; computation completed. Pytest also reports a pygame/pkg_resources deprecation warning.
+
+The bundled DotReach custom environment also completed one epoch of training and a reloaded MPC evaluation. Its factory is installed with the package, so CLI collection does not depend on the current working directory.
 
 ## Not yet established
 
