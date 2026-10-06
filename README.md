@@ -32,6 +32,27 @@ For an NVIDIA GPU, install the appropriate PyTorch 2.6.0 build for your driver i
 
 No model downloads, WandB account, or upstream training framework are needed. The ViT is initialized from scratch. A clean venv avoids unrelated torchvision/transformers version conflicts.
 
+## Progress and terminal output
+
+Every command announces what it will run, including the environment, relevant device/settings, and input/output locations. Progress is enabled by default and supports Windows PowerShell.
+
+- **Collection:** episode progress with the current episode/step and last episode return; completion confirms where data was saved.
+- **Training:** setup and dataset sizes, reward-statistics progress, epoch numbers, separate training/validation batch bars with running loss, checkpoint-save messages, and a compact epoch summary. Full metrics remain in `metrics.jsonl`.
+- **Policy evaluation:** episode progress, current step/return, and the final mean return.
+- **Model evaluation:** completed rollout windows and the latest final-step latent error.
+- **Smoke script:** announces each environment and runs the same stage reporting throughout.
+- **Inference example:** checkpoint loading, environment settings, and step progress. An episode that ends early retains its actual step count.
+
+Interactive progress bars show counts, percentage, elapsed time, rate, and estimated remaining time. Episode ETA is estimated from completed episodes and can vary with episode length. Bars refresh at most every half-second; they advance after work completes, so one slow simulator step or model batch can pause the display. Redirected/noninteractive output emits start/end messages and progress at most every 10 seconds rather than repeated terminal control sequences. Status output goes to stderr; evaluation JSON remains on stdout and in the requested result file.
+
+Suppress stage/progress output for an individual command with `--no-progress`, for example:
+
+```bash
+world-model train --config configs/pendulum.json --data data/pendulum --output runs/pendulum --no-progress
+```
+
+For scripts or Python API calls, set `WORLD_MODEL_PROGRESS=0`. In PowerShell: `$env:WORLD_MODEL_PROGRESS = "0"`; restore with `Remove-Item Env:WORLD_MODEL_PROGRESS`. Final CLI result output is still printed.
+
 ## Train a useful-sized model
 
 ```bash

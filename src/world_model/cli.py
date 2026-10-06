@@ -1,6 +1,8 @@
 import argparse
 import json
 from pathlib import Path
+import os
+from .progress import stage
 
 
 def main():
@@ -33,7 +35,14 @@ def main():
             p.add_argument("--data", required=True)
             p.add_argument("--horizon", type=int, default=10)
             p.add_argument("--max-windows", type=int, default=100)
+    for subparser in sub.choices.values():
+        subparser.add_argument(
+            "--no-progress", action="store_true", help="Suppress stage messages and progress bars"
+        )
     args = parser.parse_args()
+    if args.no_progress:
+        os.environ["WORLD_MODEL_PROGRESS"] = "0"
+    stage(f"Starting {args.command} | preparing dependencies and inputs")
     if args.command == "collect":
         from .config import Config
         from .data import collect
@@ -44,6 +53,7 @@ def main():
             from .planner import MPCPolicy
             from .train import resolve_device
 
+            stage(f"Loading collection policy: {args.checkpoint}")
             policy = MPCPolicy.from_checkpoint(
                 args.checkpoint, resolve_device(args.device), cfg.seed
             )
@@ -84,6 +94,7 @@ def main():
             )
         output.parent.mkdir(parents=True, exist_ok=True)
         output.write_text(json.dumps(result, indent=2))
+        stage(f"Results saved: {output}")
         print(json.dumps(result, indent=2))
 
 

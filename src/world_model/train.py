@@ -11,6 +11,7 @@ from .config import Config
 from .data import Windows, split_episodes
 from .envs import ActionCodec
 from .model import WorldModel
+from .progress import Progress, stage, track
 
 UPSTREAM_COMMIT = "8edfeb336732b5f3ce7b8b210d0ba370a09e2cac"
 
@@ -52,7 +53,7 @@ def check_dataset(cfg, manifest):
 def reward_stats(root, episodes):
     total = total_sq = 0.0
     count = 0
-    for episode in episodes:
+    for episode in track(episodes, "Computing reward statistics", "episode"):
         x = np.load(Path(root) / episode["name"] / "rewards.npy", mmap_mode="r")
         total += x.sum(dtype=np.float64)
         total_sq += np.square(x.astype(np.float64)).sum()
@@ -61,10 +62,13 @@ def reward_stats(root, episodes):
     return float(mean), float(max(np.sqrt(max(0, total_sq / count - mean * mean)), 1e-3))
 
 
-def run_epoch(model, loader, cfg, device, optimizer=None):
+def run_epoch(model, loader, cfg, device, optimizer=None, description="Batches"):
     model.train(optimizer is not None)
     totals, count = {}, 0
-    with torch.set_grad_enabled(optimizer is not None):
+    with (
+        torch.set_grad_enabled(optimizer is not None),
+        Progress(len(loader), description, "batch") as progress,
+    ):
         for batch in loader:
             batch = {key: value.to(device, non_blocking=True) for key, value in batch.items()}
             losses = model.losses(batch, cfg.sigreg_weight)
@@ -79,6 +83,7 @@ def run_epoch(model, loader, cfg, device, optimizer=None):
             count += n
             for key, value in losses.items():
                 totals[key] = totals.get(key, 0.0) + value.item() * n
+            progress.update(loss=f"{totals['loss'] / count:.4f}")
     return {key: value / count for key, value in totals.items()}
 
 
@@ -90,6 +95,10 @@ def atomic_save(checkpoint, path):
 
 def train(cfg, data, output, device="auto", resume=None):
     device = resolve_device(device)
+    stage(
+        f"Training setup | env={cfg.env_id} | device={device} | "
+        f"epochs={cfg.epochs} | batch_size={cfg.batch_size} | data={data} | output={output}"
+    )
     seed_all(cfg.seed)
     manifest_text = (Path(data) / "manifest.json").read_text()
     manifest = json.loads(manifest_text)
@@ -111,6 +120,9 @@ def train(cfg, data, output, device="auto", resume=None):
     )
     val_loader = DataLoader(datasets[1], shuffle=False, **loader_kwargs)
     codec = ActionCodec(manifest["action_spec"])
+    stage(
+        f"Building model | train_windows={len(datasets[0])} | validation_windows={len(datasets[1])}"
+    )
     model = WorldModel(cfg, codec.dim).to(device)
     mean, std = reward_stats(data, training)
     model.reward_mean.fill_(mean)
@@ -123,6 +135,7 @@ def train(cfg, data, output, device="auto", resume=None):
     else:
         if Path(resume).resolve().parent != output.resolve():
             raise ValueError("Resume into the original run directory to preserve best.pt and logs")
+        stage(f"Resuming checkpoint: {resume}")
         _, old_cfg, saved = load_checkpoint(resume)
         comparable = cfg.to_dict()
         comparable["epochs"] = old_cfg.epochs
@@ -150,10 +163,24 @@ def train(cfg, data, output, device="auto", resume=None):
         )
     )
     for epoch in range(start, cfg.epochs):
-        train_metrics = run_epoch(model, train_loader, cfg, device, optimizer)
+        stage(f"Epoch {epoch + 1}/{cfg.epochs} | training, then validation, then checkpoint save")
+        train_metrics = run_epoch(
+            model,
+            train_loader,
+            cfg,
+            device,
+            optimizer,
+            description=f"Epoch {epoch + 1}/{cfg.epochs} - train",
+        )
         with torch.random.fork_rng(devices=list(range(torch.cuda.device_count()))):
             torch.manual_seed(cfg.seed + 10000)
-            val_metrics = run_epoch(model, val_loader, cfg, device)
+            val_metrics = run_epoch(
+                model,
+                val_loader,
+                cfg,
+                device,
+                description=f"Epoch {epoch + 1}/{cfg.epochs} - validation",
+            )
         metric = sum(val_metrics[key] for key in ("prediction", "reward", "termination"))
         improved = metric < best
         best = min(best, metric)
@@ -171,11 +198,19 @@ def train(cfg, data, output, device="auto", resume=None):
             "cuda_rng": torch.cuda.get_rng_state_all() if torch.cuda.is_available() else [],
             "loader_rng": generator.get_state(),
         }
+        stage(f"Saving checkpoint | epoch={epoch + 1} | new_best={improved}")
         atomic_save(checkpoint, output / "last.pt")
         if improved:
             atomic_save(checkpoint, output / "best.pt")
         row = {"epoch": epoch + 1, "train": train_metrics, "validation": val_metrics}
         with (output / "metrics.jsonl").open("a") as log:
             log.write(json.dumps(row) + "\n")
-        print(json.dumps(row), flush=True)
+        stage(
+            f"Epoch {epoch + 1}/{cfg.epochs} complete | train_loss={train_metrics['loss']:.4f} | "
+            f"val_loss={val_metrics['loss']:.4f} | best_metric={best:.4f}"
+        )
+    stage(
+        f"Training complete | best={output / 'best.pt'} | last={output / 'last.pt'} | "
+        f"metrics={output / 'metrics.jsonl'}"
+    )
     return output / "best.pt"

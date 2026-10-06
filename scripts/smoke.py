@@ -11,6 +11,7 @@ from world_model.config import Config
 from world_model.data import collect
 from world_model.evaluate import evaluate, evaluate_model
 from world_model.train import train
+from world_model.progress import stage
 
 
 def main():
@@ -21,7 +22,9 @@ def main():
     root = Path(args.output)
     root.mkdir(parents=True, exist_ok=False)
     reports = {}
-    for name in ("cartpole", "pendulum", "mountain_car"):
+    stage("Smoke run | 3 environments | collect -> train -> CEM eval -> random eval -> model eval")
+    for index, name in enumerate(("cartpole", "pendulum", "mountain_car"), start=1):
+        stage(f"Smoke environment {index}/3: {name}")
         cfg = Config.load(Path(__file__).resolve().parents[1] / "configs" / f"smoke_{name}.json")
         data, run = root / name / "data", root / name / "train"
         collect(cfg, data)

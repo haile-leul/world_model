@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 import numpy as np
 from .envs import ActionCodec, frame, make_env, step
+from .progress import Progress, stage
 
 
 def write_manifest(root, manifest):
@@ -14,6 +15,10 @@ def write_manifest(root, manifest):
 
 
 def collect(cfg, root, policy=None):
+    stage(
+        f"Collection | env={cfg.env_id} | episodes={cfg.episodes} | "
+        f"max_steps/episode={cfg.max_steps} | policy={'random' if policy is None else 'MPC'} | output={root}"
+    )
     root = Path(root)
     root.mkdir(parents=True, exist_ok=False)
     env = make_env(cfg)
@@ -29,43 +34,52 @@ def collect(cfg, root, policy=None):
             "complete": False,
         }
         write_manifest(root, manifest)
-        for episode in range(cfg.episodes):
-            seed = cfg.seed + episode
-            env.reset(seed=seed)
-            env.action_space.seed(seed)
-            if policy is not None:
-                policy.reset()
-            pixels = [frame(env, cfg.image_size)]
-            actions, rewards, terms, truncs = [], [], [], []
-            for t in range(cfg.max_steps):
-                action = env.action_space.sample() if policy is None else policy.act(pixels[-1])
-                reward, term, trunc = step(env, action, cfg.action_repeat)
-                trunc = trunc or (t == cfg.max_steps - 1 and not term)
-                actions.append(codec.encode(action))
-                rewards.append(reward)
-                terms.append(term)
-                truncs.append(trunc)
-                pixels.append(frame(env, cfg.image_size))
-                if term or trunc:
-                    break
-            name = f"episode_{episode:06d}"
-            folder = root / name
-            folder.mkdir()
-            for key, value, dtype in (
-                ("pixels", pixels, np.uint8),
-                ("actions", actions, np.float32),
-                ("rewards", rewards, np.float32),
-                ("terminated", terms, np.bool_),
-                ("truncated", truncs, np.bool_),
-            ):
-                np.save(folder / f"{key}.npy", np.asarray(value, dtype=dtype))
-            manifest["episodes"].append(
-                {"name": name, "steps": len(actions), "seed": seed, "return": float(sum(rewards))}
-            )
+        with Progress(cfg.episodes, "Collecting episodes", "episode") as progress:
+            for episode in range(cfg.episodes):
+                seed = cfg.seed + episode
+                env.reset(seed=seed)
+                env.action_space.seed(seed)
+                if policy is not None:
+                    policy.reset()
+                pixels = [frame(env, cfg.image_size)]
+                actions, rewards, terms, truncs = [], [], [], []
+                for t in range(cfg.max_steps):
+                    action = env.action_space.sample() if policy is None else policy.act(pixels[-1])
+                    reward, term, trunc = step(env, action, cfg.action_repeat)
+                    trunc = trunc or (t == cfg.max_steps - 1 and not term)
+                    actions.append(codec.encode(action))
+                    rewards.append(reward)
+                    terms.append(term)
+                    truncs.append(trunc)
+                    pixels.append(frame(env, cfg.image_size))
+                    progress.update(0, episode=episode + 1, step=t + 1)
+                    if term or trunc:
+                        break
+                name = f"episode_{episode:06d}"
+                folder = root / name
+                folder.mkdir()
+                for key, value, dtype in (
+                    ("pixels", pixels, np.uint8),
+                    ("actions", actions, np.float32),
+                    ("rewards", rewards, np.float32),
+                    ("terminated", terms, np.bool_),
+                    ("truncated", truncs, np.bool_),
+                ):
+                    np.save(folder / f"{key}.npy", np.asarray(value, dtype=dtype))
+                manifest["episodes"].append(
+                    {
+                        "name": name,
+                        "steps": len(actions),
+                        "seed": seed,
+                        "return": float(sum(rewards)),
+                    }
+                )
+                progress.update(1, last_return=f"{sum(rewards):.2f}")
         manifest["complete"] = True
         write_manifest(root, manifest)
     finally:
         env.close()
+    stage(f"Collection complete | {len(manifest['episodes'])} episodes saved to {root}")
     return manifest
 
 

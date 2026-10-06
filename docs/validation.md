@@ -35,3 +35,7 @@ The bundled DotReach custom environment also completed one epoch of training and
 - Cross-platform execution beyond the tested Linux CPU environment.
 
 Datasets and checkpoints were generated locally and are excluded from source control. Reproduce them with the smoke script, then use the default recipes and larger datasets for actual experiments. GitHub Actions is configured to run the same smoke pipeline; its remote status is independent of the local results above.
+
+## Progress reporting update
+
+The progress-reporting change passed **14 tests**, lint/format checks, and the full three-environment smoke pipeline. Tests cover disabled output, accurate partial counts, and interrupted-stage reporting in addition to the existing model tests. Collection, training/validation batches, policy evaluation, and held-out model evaluation were exercised with redirected status logs; the inference example was also checked in a terminal. Windows PowerShell was not available for local testing; bars use ASCII characters and tqdm's terminal handling.
