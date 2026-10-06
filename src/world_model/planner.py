@@ -1,0 +1,124 @@
+"""Vectorized CEM for continuous and categorical actions; receding-horizon control."""
+
+import numpy as np
+import torch
+from .envs import ActionCodec
+
+
+class CEM:
+    def __init__(self, cfg, codec, device="cpu", seed=0):
+        self.cfg, self.codec, self.device = cfg, codec, torch.device(device)
+        self.generator = torch.Generator(device=self.device).manual_seed(seed)
+        self.reset()
+
+    def reset(self):
+        c, a = self.cfg, self.codec
+        self.mean = torch.zeros(c.horizon, a.dim, device=self.device)
+        self.probs = torch.full_like(self.mean, 1 / a.dim)
+
+    @torch.no_grad()
+    def plan(self, score_fn):
+        c, a = self.cfg, self.codec
+        mean, probs = self.mean.clone(), self.probs.clone()
+        std = torch.ones_like(mean)
+        best_score, best = -float("inf"), None
+        for _ in range(c.iterations):
+            if a.discrete:
+                indices = torch.multinomial(
+                    probs, c.population, replacement=True, generator=self.generator
+                ).T
+                candidates = torch.nn.functional.one_hot(indices, a.dim).float()
+            else:
+                noise = torch.randn(
+                    c.population, c.horizon, a.dim, device=self.device, generator=self.generator
+                )
+                candidates = (mean + std * noise).clamp(-1, 1)
+                candidates[0] = mean
+            scores = score_fn(candidates)
+            if scores.shape != (c.population,) or not torch.isfinite(scores).all():
+                raise ValueError("Planner scores must be finite, one per candidate")
+            values, idx = scores.topk(c.elites)
+            elites = candidates[idx]
+            if values[0].item() > best_score:
+                best_score, best = values[0].item(), elites[0].clone()
+            if a.discrete:
+                probs = c.smoothing * probs + (1 - c.smoothing) * elites.mean(0)
+                probs = probs.clamp_min(0.01)
+                probs /= probs.sum(-1, keepdim=True)
+            else:
+                mean = c.smoothing * mean + (1 - c.smoothing) * elites.mean(0)
+                std = (
+                    c.smoothing * std + (1 - c.smoothing) * elites.std(0, unbiased=False)
+                ).clamp_min(c.min_std)
+        # Warm start the next MPC call. Never share state across episodes.
+        self.mean = torch.cat([mean[1:], torch.zeros_like(mean[:1])])
+        self.probs = torch.cat([probs[1:], torch.full_like(probs[:1], 1 / a.dim)])
+        return best[0]
+
+
+class MPCPolicy:
+    """Public inference API: reset(); act(uint8 RGB resized to checkpoint image_size)."""
+
+    def __init__(self, model, cfg, action_spec, device="cpu", seed=0):
+        self.model, self.cfg = model.to(device).eval(), cfg
+        self.device = torch.device(device)
+        self.codec = ActionCodec(action_spec)
+        self.cem = CEM(cfg, self.codec, device, seed)
+        self.reset()
+
+    @classmethod
+    def from_checkpoint(cls, path, device="cpu", seed=0, **planner_overrides):
+        from .train import load_checkpoint
+
+        model, cfg, checkpoint = load_checkpoint(path, device)
+        allowed = {
+            "horizon",
+            "population",
+            "elites",
+            "iterations",
+            "discount",
+            "smoothing",
+            "min_std",
+            "candidate_chunk",
+        }
+        if set(planner_overrides) - allowed:
+            raise ValueError("Only planner settings can be overridden during inference")
+        from .config import Config
+
+        cfg = Config(**(cfg.to_dict() | planner_overrides))
+        return cls(model, cfg, checkpoint["action_spec"], device, seed)
+
+    def reset(self):
+        self.embeddings = []
+        self.actions = []
+        self.cem.reset()
+
+    @torch.inference_mode()
+    def act(self, pixels):
+        pixels = np.asarray(pixels)
+        expected = (self.cfg.image_size, self.cfg.image_size, 3)
+        if pixels.shape != expected or pixels.dtype != np.uint8:
+            raise ValueError(f"Expected uint8 RGB {expected}, got {pixels.shape}/{pixels.dtype}")
+        encoded = self.model.encode(torch.as_tensor(pixels.copy(), device=self.device)[None, None])
+        self.embeddings.append(encoded)
+        self.embeddings = self.embeddings[-self.cfg.history :]
+        z = torch.cat(self.embeddings, dim=1)
+        count = len(self.embeddings) - 1
+        past = (
+            torch.stack(self.actions[-count:])[None]
+            if count
+            else torch.empty(1, 0, self.codec.dim, device=self.device)
+        )
+
+        def score(candidates):
+            return torch.cat(
+                [
+                    self.model.imagine(z, past, chunk, self.cfg.discount)
+                    for chunk in candidates.split(self.cfg.candidate_chunk)
+                ]
+            )
+
+        encoded_action = self.cem.plan(score)
+        self.actions.append(encoded_action)
+        self.actions = self.actions[-self.cfg.history :]
+        return self.codec.decode(encoded_action.cpu().numpy())

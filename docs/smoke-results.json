@@ -1,0 +1,350 @@
+{
+  "cartpole": {
+    "config": {
+      "env_id": "CartPole-v1",
+      "factory": null,
+      "env_kwargs": {},
+      "image_size": 32,
+      "history": 3,
+      "dim": 48,
+      "encoder_depth": 1,
+      "encoder_heads": 3,
+      "patch_size": 8,
+      "predictor_depth": 1,
+      "predictor_heads": 2,
+      "predictor_head_dim": 24,
+      "mlp_dim": 96,
+      "sigreg_weight": 0.09,
+      "sigreg_projections": 16,
+      "batch_size": 8,
+      "epochs": 2,
+      "lr": 5e-05,
+      "weight_decay": 0.001,
+      "workers": 0,
+      "seed": 42,
+      "episodes": 8,
+      "max_steps": 40,
+      "action_repeat": 1,
+      "validation_fraction": 0.1,
+      "horizon": 3,
+      "population": 16,
+      "elites": 4,
+      "iterations": 2,
+      "discount": 0.99,
+      "smoothing": 0.1,
+      "min_std": 0.05,
+      "candidate_chunk": 16
+    },
+    "cem": {
+      "policy": "cem",
+      "checkpoint": "runs/verified_smoke/cartpole/train/best.pt",
+      "planner": {
+        "horizon": 3,
+        "population": 16,
+        "iterations": 2
+      },
+      "episodes": [
+        {
+          "seed": 100000,
+          "return": 8.0,
+          "steps": 8,
+          "terminated": true,
+          "truncated": false,
+          "mean_action_seconds": 0.0077512691249808086
+        },
+        {
+          "seed": 100001,
+          "return": 11.0,
+          "steps": 11,
+          "terminated": true,
+          "truncated": false,
+          "mean_action_seconds": 0.006949075818180394
+        }
+      ],
+      "mean_return": 9.5,
+      "std_return": 1.5,
+      "standard_error": 1.4999999999999998
+    },
+    "random": {
+      "policy": "random",
+      "checkpoint": "runs/verified_smoke/cartpole/train/best.pt",
+      "planner": {
+        "horizon": 3,
+        "population": 16,
+        "iterations": 2
+      },
+      "episodes": [
+        {
+          "seed": 100000,
+          "return": 9.0,
+          "steps": 9,
+          "terminated": true,
+          "truncated": false,
+          "mean_action_seconds": 2.106144443637782e-05
+        },
+        {
+          "seed": 100001,
+          "return": 40.0,
+          "steps": 40,
+          "terminated": false,
+          "truncated": true,
+          "mean_action_seconds": 1.3848650010572782e-05
+        }
+      ],
+      "mean_return": 24.5,
+      "std_return": 15.5,
+      "standard_error": 15.499999999999998
+    },
+    "model": {
+      "windows": 2,
+      "horizon": 3,
+      "latent_mse_by_step": [
+        0.0788627341389656,
+        0.10706328228116035,
+        0.12844843417406082
+      ],
+      "reward_rmse_by_step": [
+        0.00014546513862723182,
+        0.00019177800245587972,
+        0.0002059938679275665
+      ],
+      "termination_brier_by_step": [
+        0.22713689986567775,
+        0.21955994868293915,
+        0.2157405609886589
+      ]
+    }
+  },
+  "pendulum": {
+    "config": {
+      "env_id": "Pendulum-v1",
+      "factory": null,
+      "env_kwargs": {},
+      "image_size": 32,
+      "history": 3,
+      "dim": 48,
+      "encoder_depth": 1,
+      "encoder_heads": 3,
+      "patch_size": 8,
+      "predictor_depth": 1,
+      "predictor_heads": 2,
+      "predictor_head_dim": 24,
+      "mlp_dim": 96,
+      "sigreg_weight": 0.09,
+      "sigreg_projections": 16,
+      "batch_size": 8,
+      "epochs": 2,
+      "lr": 5e-05,
+      "weight_decay": 0.001,
+      "workers": 0,
+      "seed": 42,
+      "episodes": 8,
+      "max_steps": 40,
+      "action_repeat": 1,
+      "validation_fraction": 0.1,
+      "horizon": 3,
+      "population": 16,
+      "elites": 4,
+      "iterations": 2,
+      "discount": 0.99,
+      "smoothing": 0.1,
+      "min_std": 0.05,
+      "candidate_chunk": 16
+    },
+    "cem": {
+      "policy": "cem",
+      "checkpoint": "runs/verified_smoke/pendulum/train/best.pt",
+      "planner": {
+        "horizon": 3,
+        "population": 16,
+        "iterations": 2
+      },
+      "episodes": [
+        {
+          "seed": 100000,
+          "return": -293.5242275656614,
+          "steps": 40,
+          "terminated": false,
+          "truncated": true,
+          "mean_action_seconds": 0.0070499142999949525
+        },
+        {
+          "seed": 100001,
+          "return": -128.49979825819648,
+          "steps": 40,
+          "terminated": false,
+          "truncated": true,
+          "mean_action_seconds": 0.008067705074989818
+        }
+      ],
+      "mean_return": -211.01201291192893,
+      "std_return": 82.51221465373247,
+      "standard_error": 82.51221465373246
+    },
+    "random": {
+      "policy": "random",
+      "checkpoint": "runs/verified_smoke/pendulum/train/best.pt",
+      "planner": {
+        "horizon": 3,
+        "population": 16,
+        "iterations": 2
+      },
+      "episodes": [
+        {
+          "seed": 100000,
+          "return": -300.52631785725066,
+          "steps": 40,
+          "terminated": false,
+          "truncated": true,
+          "mean_action_seconds": 0.0001633347999899115
+        },
+        {
+          "seed": 100001,
+          "return": -299.4541716493516,
+          "steps": 40,
+          "terminated": false,
+          "truncated": true,
+          "mean_action_seconds": 0.00014565412500928688
+        }
+      ],
+      "mean_return": -299.9902447533011,
+      "std_return": 0.5360731039495192,
+      "standard_error": 0.5360731039495191
+    },
+    "model": {
+      "windows": 10,
+      "horizon": 3,
+      "latent_mse_by_step": [
+        0.060301022976636885,
+        0.07003034353256225,
+        0.07630993723869324
+      ],
+      "reward_rmse_by_step": [
+        4.884768665723556,
+        4.881559696811127,
+        5.014642933917904
+      ],
+      "termination_brier_by_step": [
+        0.2556603072774237,
+        0.26521121721339896,
+        0.2636388582998631
+      ]
+    }
+  },
+  "mountain_car": {
+    "config": {
+      "env_id": "MountainCarContinuous-v0",
+      "factory": null,
+      "env_kwargs": {},
+      "image_size": 32,
+      "history": 3,
+      "dim": 48,
+      "encoder_depth": 1,
+      "encoder_heads": 3,
+      "patch_size": 8,
+      "predictor_depth": 1,
+      "predictor_heads": 2,
+      "predictor_head_dim": 24,
+      "mlp_dim": 96,
+      "sigreg_weight": 0.09,
+      "sigreg_projections": 16,
+      "batch_size": 8,
+      "epochs": 2,
+      "lr": 5e-05,
+      "weight_decay": 0.001,
+      "workers": 0,
+      "seed": 42,
+      "episodes": 8,
+      "max_steps": 40,
+      "action_repeat": 1,
+      "validation_fraction": 0.1,
+      "horizon": 3,
+      "population": 16,
+      "elites": 4,
+      "iterations": 2,
+      "discount": 0.99,
+      "smoothing": 0.1,
+      "min_std": 0.05,
+      "candidate_chunk": 16
+    },
+    "cem": {
+      "policy": "cem",
+      "checkpoint": "runs/verified_smoke/mountain_car/train/best.pt",
+      "planner": {
+        "horizon": 3,
+        "population": 16,
+        "iterations": 2
+      },
+      "episodes": [
+        {
+          "seed": 100000,
+          "return": -3.857674036717639,
+          "steps": 40,
+          "terminated": false,
+          "truncated": true,
+          "mean_action_seconds": 0.007242800999995325
+        },
+        {
+          "seed": 100001,
+          "return": -3.899252846648834,
+          "steps": 40,
+          "terminated": false,
+          "truncated": true,
+          "mean_action_seconds": 0.0071118664499977054
+        }
+      ],
+      "mean_return": -3.8784634416832366,
+      "std_return": 0.020789404965597447,
+      "standard_error": 0.020789404965597443
+    },
+    "random": {
+      "policy": "random",
+      "checkpoint": "runs/verified_smoke/mountain_car/train/best.pt",
+      "planner": {
+        "horizon": 3,
+        "population": 16,
+        "iterations": 2
+      },
+      "episodes": [
+        {
+          "seed": 100000,
+          "return": -1.8336772351649437,
+          "steps": 40,
+          "terminated": false,
+          "truncated": true,
+          "mean_action_seconds": 0.00012420617499913077
+        },
+        {
+          "seed": 100001,
+          "return": -1.301414797898712,
+          "steps": 40,
+          "terminated": false,
+          "truncated": true,
+          "mean_action_seconds": 0.00011420487499833599
+        }
+      ],
+      "mean_return": -1.567546016531828,
+      "std_return": 0.26613121863311584,
+      "standard_error": 0.26613121863311584
+    },
+    "model": {
+      "windows": 10,
+      "horizon": 3,
+      "latent_mse_by_step": [
+        0.0712112195789814,
+        0.09356158301234245,
+        0.0934786967933178
+      ],
+      "reward_rmse_by_step": [
+        0.030190037165381385,
+        0.020386492004718912,
+        0.02979147506578019
+      ],
+      "termination_brier_by_step": [
+        0.2565101890320459,
+        0.2678230433443769,
+        0.2682808710417476
+      ]
+    }
+  }
+}

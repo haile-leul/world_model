@@ -1,0 +1,53 @@
+import dataclasses
+import numpy as np
+import torch
+from world_model.data import collect
+from world_model.evaluate import evaluate, evaluate_model
+from world_model.envs import frame, make_env
+from world_model.planner import MPCPolicy
+from world_model.train import load_checkpoint, train
+
+
+def test_train_reload_resume_and_mpc(tmp_path, tiny_config):
+    cfg = tiny_config
+    data, run = tmp_path / "data", tmp_path / "run"
+    collect(cfg, data)
+    best = train(cfg, data, run, "cpu")
+    model, loaded_cfg, saved = load_checkpoint(best)
+    assert loaded_cfg == cfg and saved["epoch"] == 0
+    assert all(torch.isfinite(p).all() for p in model.parameters())
+    policy = MPCPolicy.from_checkpoint(best, seed=5)
+    env = make_env(cfg)
+    try:
+        env.reset(seed=99)
+        for _ in range(5):
+            action = policy.act(frame(env, cfg.image_size))
+            assert env.action_space.contains(action)
+            env.step(action)
+        policy.reset()
+        assert not policy.actions and not policy.embeddings
+    finally:
+        env.close()
+    result = evaluate(best, episodes=1, device="cpu")
+    assert np.isfinite(result["mean_return"])
+    offline = evaluate_model(best, data, horizon=2, max_windows=2)
+    assert len(offline["latent_mse_by_step"]) == 2
+    train(dataclasses.replace(cfg, epochs=2), data, run, "cpu", resume=run / "last.pt")
+    _, _, last = load_checkpoint(run / "last.pt")
+    assert last["epoch"] == 1
+
+
+def test_outcome_losses_do_not_change_representation(tiny_config):
+    from world_model.model import WorldModel
+
+    model = WorldModel(tiny_config, 1)
+    batch = {
+        "pixels": torch.randint(0, 256, (4, 4, 16, 16, 3), dtype=torch.uint8),
+        "actions": torch.randn(4, 3, 1),
+        "rewards": torch.randn(4, 3),
+        "terminated": torch.zeros(4, 3),
+    }
+    losses = model.losses(batch, tiny_config.sigreg_weight)
+    (losses["reward"] + losses["termination"]).backward()
+    assert all(p.grad is None for p in model.jepa.parameters())
+    assert any(p.grad is not None for p in model.outcome.parameters())

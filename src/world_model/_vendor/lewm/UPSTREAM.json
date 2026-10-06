@@ -1,0 +1,6 @@
+{
+  "repository": "https://github.com/lucas-maes/le-wm",
+  "commit": "8edfeb336732b5f3ce7b8b210d0ba370a09e2cac",
+  "files": ["jepa.py", "module.py", "LICENSE"],
+  "modifications": "None. Python package markers and this provenance file are local additions."
+}
