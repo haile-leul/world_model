@@ -10,13 +10,16 @@ This repository includes the **actual upstream `JEPA`, `ARPredictor`, action emb
 
 ## Quick start
 
-Python **3.10–3.12** and Git are required. Authenticate with GitHub to clone this private repository.
+**Recommended: Python 3.11.** GitHub CI runs the tests and three-environment smoke pipeline on Python 3.11. Python 3.12 was also tested locally; the package declares support for Python 3.10–3.12, but Python 3.10 has not been validated here. Python 3.13 and newer are outside the supported range.
+
+Install Python 3.11 and Git before starting. Authenticate with GitHub to clone this private repository.
 
 ```bash
 git clone https://github.com/haile-leul/world_model.git
 cd world_model
-python -m venv .venv
+python3.11 -m venv .venv                 # Windows: py -3.11 -m venv .venv
 source .venv/bin/activate                 # Windows: .venv\Scripts\activate
+python --version                        # should report Python 3.11.x
 python -m pip install --upgrade pip
 python -m pip install "torch==2.6.0" --index-url https://download.pytorch.org/whl/cpu
 python -m pip install -e ".[dev]"
