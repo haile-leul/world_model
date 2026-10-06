@@ -1,37 +1,33 @@
 # Validation performed
 
-Executed on 2026-10-06 using Python 3.12, PyTorch 2.6.0+cpu, Gymnasium 1.1.1, and Transformers 4.49.0. No GPU was available. See `requirements-tested-cpu.txt` for the full dependency snapshot.
+Updated on 2026-10-06 after removing the pygame dependency and classic-control environment presets. Local execution used Python 3.12, PyTorch 2.6.0+cpu, Gymnasium 1.1.1, and Transformers 4.49.0. GitHub CI is configured for Python 3.11. No GPU was available locally.
+
+## Dependency policy
+
+- Installation uses core Gymnasium, without environment extras.
+- `python -m pip check`: no broken requirements.
+- `python scripts/check_no_pygame.py`: passed after pygame was uninstalled. No pygame/pygame-ce distribution, importable pygame module, or SDL2 shared library was found in the active environment's site-packages.
+- CI runs the same absence check immediately after installation in a fresh environment.
+- DotReach renders RGB arrays directly using NumPy. Rendering requires no pygame, SDL, display server, or audio library.
+
+This verification covers the repository's configured Python environment, not arbitrary packages installed later or libraries elsewhere on a machine. The reported Windows malware alert was not investigated or classified as a true/false positive.
 
 ## Tests
 
-`pytest -q`: **11 passed**. Tests exercise bounded/multidimensional Box and nonzero-start Discrete action round trips, action repeat at truncation, real Pendulum image collection, nonoverlapping episode splits, continuous and categorical CEM optimization, action/latent rollout timing, termination survival weighting, detached outcome heads, a real optimizer run, checkpoint reload/resume, closed-loop inference, and custom-factory CLI collection from a different working directory.
+`pytest -q`: **12 passed**, with pygame uninstalled. Coverage includes the default NumPy renderer, action encoding, episode-separated image collection, termination/truncation boundaries, continuous and categorical CEM optimization, rollout timing, detached outcome heads, training, reload, resume, and custom-factory CLI collection from another working directory.
 
-`ruff check .` and `ruff format --check .` are also required by CI. Vendored upstream files are intentionally excluded from formatting to preserve their exact source bytes.
+`ruff check .` and `ruff format --check .` passed. Vendored upstream source is excluded from formatting to preserve exact bytes.
 
 ## Actual smoke training and evaluation
 
-Command: `python scripts/smoke.py --output runs/verified_smoke`.
+Command: `python scripts/smoke.py --output runs/no_pygame_smoke`.
 
-Each environment used 8 random collection episodes, at most 40 transitions per episode, two epochs, 32×32 RGB, a one-layer 48-dimensional ViT and one-layer predictor. CEM used horizon 3, 16 candidates, four elites, and two iterations. Evaluation used the two fresh seeds 100000 and 100001 with the same 40-step cap. These runs validate execution, **not task solving or statistically meaningful policy improvement**.
+The bundled DotReach environment completed collection, two training epochs, checkpoint loading, two-episode CEM and random-policy evaluations, and held-out autoregressive model evaluation. It used 8 random collection episodes capped at 40 transitions, 32×32 RGB, a one-layer 48-dimensional ViT and one-layer predictor. CEM used horizon 3, 16 candidates, four elites, and two iterations.
 
-| Environment | Mean MPC return | Mean random return |
-|---|---:|---:|
-| CartPole-v1 | 9.50 | 24.50 |
-| Pendulum-v1 | -211.01 | -299.99 |
-| MountainCarContinuous-v0 | -3.88 | -1.57 |
+Full per-episode results, config, and model errors are in [smoke-results.json](smoke-results.json). These short runs verify execution, not task solving or statistically meaningful policy improvement. Low latent variation and prediction errors require further training and evaluation before practical use.
 
-Full per-episode returns, rollout errors, planner settings, and measured latencies are in [`smoke-results.json`](smoke-results.json). The environment horizon caps differ from full benchmarks. MPC was worse than random on CartPole and MountainCar in these tiny runs; the Pendulum difference across two seeds is not sufficient evidence of reliable improvement. Low held-out latent variation in these short runs also warrants longer training and representation diagnostics.
+The runtime emitted CPU-info/NNPACK fallback warnings; execution completed successfully. No pygame import/deprecation warning occurred in the updated tests.
 
-The first smoke attempt exposed an incomplete manifest during final model evaluation. Collection was changed to finalize the manifest atomically, and the complete three-environment smoke run was repeated successfully. The environment emitted CPU-info/NNPACK fallback warnings; computation completed. Pytest also reports a pygame/pkg_resources deprecation warning.
+## Scope
 
-The bundled DotReach custom environment also completed one epoch of training and a reloaded MPC evaluation. Its factory is installed with the package, so CLI collection does not depend on the current working directory.
-
-## Not yet established
-
-- Long-run performance of the default model recipes or solved-task scores.
-- GPU throughput, CUDA resume determinism, or multi-device training (not implemented).
-- Generalization to an arbitrary custom simulator or unseen visual distribution.
-- Reliability of long imagined horizons outside the collection distribution.
-- Cross-platform execution beyond the tested Linux CPU environment.
-
-Datasets and checkpoints were generated locally and are excluded from source control. Reproduce them with the smoke script, then use the default recipes and larger datasets for actual experiments. GitHub Actions is configured to run the same smoke pipeline; its remote status is independent of the local results above.
+Long-run performance, GPU throughput, and Windows/macOS execution have not been validated here. Custom simulators may introduce their own dependencies; rerun the absence check after installing one. Prior classic-control smoke results have been replaced with current DotReach results because those environment presets are no longer included. Datasets/checkpoints remain gitignored and can be reproduced with the smoke script.

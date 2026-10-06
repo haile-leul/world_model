@@ -1,5 +1,5 @@
 {
-  "env_id": "Pendulum-v1",
+  "env_id": "DotReach-v0",
   "max_steps": 40,
   "episodes": 8,
   "epochs": 2,
@@ -19,5 +19,9 @@
   "population": 16,
   "elites": 4,
   "iterations": 2,
-  "candidate_chunk": 16
+  "candidate_chunk": 16,
+  "factory": "world_model.example_env:make_env",
+  "env_kwargs": {
+    "max_steps": 40
+  }
 }

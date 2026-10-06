@@ -6,6 +6,21 @@ from world_model.envs import ActionCodec, step
 from world_model.data import Windows, collect, split_episodes
 
 
+def test_default_environment_renders_without_pygame():
+    from world_model.config import Config
+    from world_model.envs import frame, make_env
+
+    cfg = Config()
+    env = make_env(cfg)
+    try:
+        env.reset(seed=42)
+        pixels = frame(env, cfg.image_size)
+        assert pixels.shape == (cfg.image_size, cfg.image_size, 3)
+        assert pixels.dtype == np.uint8
+    finally:
+        env.close()
+
+
 @pytest.mark.parametrize(
     "space",
     [

@@ -7,7 +7,7 @@ from pathlib import Path
 
 @dataclass
 class Config:
-    env_id: str = "Pendulum-v1"
+    env_id: str = "DotReach-v0"
     factory: str | None = None
     env_kwargs: dict = field(default_factory=dict)
     image_size: int = 64
