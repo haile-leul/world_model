@@ -1,20 +1,18 @@
 """Only this module touches the real simulator. Observations are deliberately ignored."""
 
 import importlib
+import os
 import numpy as np
 from PIL import Image
 
 
 def make_env(cfg):
+    os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
     if cfg.factory:
         module, name = cfg.factory.split(":", 1)
         env = getattr(importlib.import_module(module), name)(
             render_mode="rgb_array", **cfg.env_kwargs
         )
-    elif cfg.env_id == "DotReach-v0":
-        from .example_env import make_env as make_dot_reach
-
-        env = make_dot_reach(render_mode="rgb_array", **cfg.env_kwargs)
     else:
         import gymnasium as gym
 

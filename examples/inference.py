@@ -1,4 +1,4 @@
-"""python -m examples.inference --checkpoint runs/custom/best.pt"""
+"""python -m examples.inference --checkpoint runs/pendulum/best.pt"""
 
 import argparse
 from world_model.envs import frame, make_env, step

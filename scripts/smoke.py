@@ -1,4 +1,4 @@
-"""Run real CPU collection/training/evaluation in the NumPy-rendered DotReach environment.
+"""Run real CPU collection/training/evaluation in all three bundled environments.
 
 These tiny runs check plumbing, not control quality. Outputs stay out of git.
 """
@@ -21,7 +21,7 @@ def main():
     root = Path(args.output)
     root.mkdir(parents=True, exist_ok=False)
     reports = {}
-    for name in ("custom",):
+    for name in ("cartpole", "pendulum", "mountain_car"):
         cfg = Config.load(Path(__file__).resolve().parents[1] / "configs" / f"smoke_{name}.json")
         data, run = root / name / "data", root / name / "train"
         collect(cfg, data)

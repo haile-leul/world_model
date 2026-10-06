@@ -1,10 +1,5 @@
 # Bring your own Gym-style environment
 
-The bundled DotReach renderer uses NumPy only. Keep your custom environment's renderer
-free of pygame/SDL to preserve this project's dependency policy; installing another
-environment package can add dependencies independently of this repository. After
-installing one, run `python scripts/check_no_pygame.py` in the same venv.
-
 ## Required contract
 
 ```python

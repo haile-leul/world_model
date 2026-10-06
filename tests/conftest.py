@@ -11,8 +11,7 @@ def small_cpu_threads():
 @pytest.fixture
 def tiny_config():
     return Config(
-        env_id="DotReach-v0",
-        factory="world_model.example_env:make_env",
+        env_id="Pendulum-v1",
         image_size=16,
         patch_size=8,
         dim=24,

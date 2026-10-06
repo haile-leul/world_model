@@ -9,7 +9,7 @@ For transition `t`, the stored tuple is `(pixels[t], actions[t], rewards[t], ter
 ## Data layout
 
 ```
-data/custom/
+data/pendulum/
   manifest.json
   episode_000000/
     pixels.npy          # uint8 [T+1,H,W,3]
@@ -53,7 +53,7 @@ Offline validation measures behavior covered by the dataset. MPC can exploit pre
 
 ## Better data
 
-Uniform random actions are a convenient bootstrap, not a universal exploration strategy. A model trained without successful states cannot reliably plan toward unseen outcomes. For custom tasks, collect exploratory or expert trajectories that cover task-relevant states and motion. The bundled DotReach example renders directly into NumPy arrays without pygame or SDL.
+Uniform random actions are a convenient bootstrap, not a universal exploration strategy. MountainCarContinuous is especially challenging because reward mostly penalizes action until the goal is reached. A model trained without successful states cannot reliably plan toward that unseen outcome. CartPole's constant reward needs a calibrated failure model. Pendulum benefits from broad angle and velocity coverage.
 
 You can collect with a trained checkpoint using `collect --checkpoint ...` into a new dataset, or pass a Python policy object to `collect(cfg, path, policy)` implementing `reset()`, `act(pixels)`, and `codec`. An expert collector may access simulator state to choose actions, but only its RGB frames/actions/rewards enter the saved training data. To import your own trajectories, write the array schema above and a manifest matching a freshly collected sample. Ensure all actions are encoded through `ActionCodec`, bounds and rendering match, each episode ends at its true boundary, and completion is set only after every array is written.
 
